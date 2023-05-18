@@ -1,7 +1,6 @@
 from robotics import Robot
 
-SCIENTISTS = ["Albert Einstein", "Isaac Newton",
-              "Marie Curie", "Charles Darwin"]
+SCIENTISTS = ["Albert Einstein", "Isaac Newton", "Marie Curie", "Charles Darwin"]
 BASE_URL = "https://en.wikipedia.org/"
 
 robot = Robot("Quandrinaut")
@@ -12,7 +11,9 @@ def introduce_yourself():
 
 
 def open_webpage_and_crawl():
-    robot.open_webpage_and_crawl(BASE_URL)
+    extract_data_dict = robot.open_webpage_and_crawl(BASE_URL, SCIENTISTS)
+    print("============================================== ")
+    print(extract_data_dict)
 
 
 def main():
