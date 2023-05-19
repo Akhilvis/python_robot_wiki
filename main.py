@@ -1,3 +1,4 @@
+import json
 from robotics import Robot
 
 SCIENTISTS = ["Albert Einstein", "Isaac Newton", "Marie Curie", "Charles Darwin"]
@@ -14,8 +15,7 @@ def greetigs():
     robot.say_goodbye()
 
 
-def open_webpage_and_crawl():
-    extract_data_list = robot.open_webpage_and_crawl(BASE_URL, SCIENTISTS)
+def display_write_extracted_data(extract_data_list):
     for scientist_dict in extract_data_list:
         print("------------------------------------------------------------------")
         print(f"Name            : {scientist_dict['name']}")
@@ -24,6 +24,14 @@ def open_webpage_and_crawl():
         print(f"Age             : {scientist_dict['age']}")
         print(f"First Paragraph : {scientist_dict['first_paragraph']}")
         print("------------------------------------------------------------------")
+
+    with open("data.json", "w", encoding="utf-8") as f:
+        json.dump(extract_data_list, f, ensure_ascii=False, indent=4)
+
+
+def open_webpage_and_crawl():
+    extract_data = robot.open_webpage_and_crawl(BASE_URL, SCIENTISTS)
+    display_write_extracted_data(extract_data)
 
 
 def main():

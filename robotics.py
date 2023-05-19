@@ -4,17 +4,10 @@ from datetime import datetime
 
 from RPA.Browser.Selenium import Selenium
 from selenium.webdriver.common.by import By
-
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 
 br = Selenium()
-# # Set Mozilla Firefox user agent
-# user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-# # br.add_custom_capability("goog:chromeOptions", {"args": ["--user-agent=" + user_agent]})
-
-# options = br.driver.ChromeOptions()
-# options.add_argument(f"--user-agent={user_agent}")
-
-# driver = br.driver.Chrome(options=options)
 
 
 class Robot:
@@ -36,7 +29,9 @@ class Robot:
             5. Finding the biography data, regex matching to get born and died dates
             6. Finding age using born and died age objects
             7. Displaying all the data in a readable format.
-            Note: Added some time delays between each scroll , please be patient.
+            8. Writing data to a file in json format.
+            Note: Added some implicit wait for suceccfull rendering of elements between each scroll ,
+            please be patient.
             """
         )
         time.sleep(22)
@@ -47,7 +42,7 @@ class Robot:
     def open_webpage_and_crawl(self, webpage, scientist_list):
         br.open_available_browser(webpage)
         self.web_driver = br.driver
-        time.sleep(10)
+        self.wait = WebDriverWait(self.web_driver, 10)
 
         for scientist in scientist_list:
             self.temp_scientist_dict = {}
@@ -55,22 +50,24 @@ class Robot:
             self.search_scientist(scientist)
             self.extract_data()
             self.extract_data_list.append(self.temp_scientist_dict)
-            time.sleep(6)
 
         br.close_all_browsers()
 
         return self.extract_data_list
 
     def search_scientist(self, scientist_name):
-        textbox_element = self.web_driver.find_element(By.ID, "searchform")
+        time.sleep(6)
+        textbox_element = self.wait.until(
+            EC.presence_of_element_located((By.ID, "searchform"))
+        )
+
         textbox_input = textbox_element.find_element(By.TAG_NAME, "input")
         textbox_input.send_keys(scientist_name)
-        time.sleep(6)
-        submit_button = self.web_driver.find_element(
-            By.CSS_SELECTOR, "#searchform > div > button"
+
+        submit_button = self.wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "#searchform > div > button"))
         )
         submit_button.click()
-        time.sleep(10)
 
     def extract_data(self):
         self.find_fist_paragraph()
@@ -92,15 +89,16 @@ class Robot:
             By.CLASS_NAME, "infobox.biography.vcard"
         )
         bio_text = biography_element.text
-        born_pattern = "Born\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
-        died_pattern = "Died\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
 
-        born_match = re.search(born_pattern, bio_text)
+        born_pattern_regex = re.compile("Born\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})")
+        died_pattern_regex = re.compile("Died\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})")
+
+        born_match = born_pattern_regex.search(bio_text)
         if born_match:
             born_date_string = born_match.group(1)
             born_date = self.date_string_to_object(born_date_string)
 
-        died_match = re.search(died_pattern, bio_text)
+        died_match = died_pattern_regex.search(bio_text)
         if died_match:
             died_date_string = died_match.group(1)
             died_date = self.date_string_to_object(died_date_string)
