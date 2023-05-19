@@ -20,13 +20,29 @@ br = Selenium()
 class Robot:
     def __init__(self, name):
         self.name = name
-        self.extract_data_dict = {}
+        self.extract_data_list = []
 
     def say_hello(self):
-        print("Hello, my name is " + self.name)
+        print(
+            f"""
+            Hello, my name is  {self.name}.
+            I am an robotic process automation system, 
+            trying to help you to extract values informations from the web.
+            I am going to the following steps for the successfull extraction of scientist informations...
+            1. open the browser, naviagte to the base url 'https://en.wikipedia.org/wiki/Main_Page'
+            2. Search each scientist name in the top search bar and clicking search button
+            3. Crawl through the entire page 
+            4. Fiding the first paragraph using CSS Selectors
+            5. Finding the biography data, regex matching to get born and died dates
+            6. Finding age using born and died age objects
+            7. Displaying all the data in a readable format.
+            Note: Added some time delays between each scroll , please be patient.
+            """
+        )
+        time.sleep(22)
 
     def say_goodbye(self):
-        print("Goodbye, my name is " + self.name)
+        print("Bye Bye, Have a good day...")
 
     def open_webpage_and_crawl(self, webpage, scientist_list):
         br.open_available_browser(webpage)
@@ -34,60 +50,68 @@ class Robot:
         time.sleep(10)
 
         for scientist in scientist_list:
+            self.temp_scientist_dict = {}
+            self.temp_scientist_dict["name"] = scientist
             self.search_scientist(scientist)
             self.extract_data()
+            self.extract_data_list.append(self.temp_scientist_dict)
             time.sleep(6)
-
-        print("---------------------------------------------------------")
-        print(self.extract_data_dict)
-        print("---------------------------------------------------------")
 
         br.close_all_browsers()
 
-        return self.extract_data_dict
+        return self.extract_data_list
 
     def search_scientist(self, scientist_name):
         textbox_element = self.web_driver.find_element(By.ID, "searchform")
         textbox_input = textbox_element.find_element(By.TAG_NAME, "input")
         textbox_input.send_keys(scientist_name)
-        textbox_input.submit()
+        time.sleep(6)
+        submit_button = self.web_driver.find_element(
+            By.CSS_SELECTOR, "#searchform > div > button"
+        )
+        submit_button.click()
         time.sleep(10)
 
     def extract_data(self):
-        print("=============  extract_data ==================")
-        fist_paragraph = self.web_driver.find_element(
-            By.CSS_SELECTOR, "#mw-content-text > div.mw-parser-output > p:nth-child(17)"
-        )
-        self.extract_data_dict["fist_paragraph"] = fist_paragraph.text
+        self.find_fist_paragraph()
+        self.find_age_data()
 
+    def find_fist_paragraph(self):
+        fist_paragraph = self.web_driver.find_element(
+            By.XPATH, '//*[@id="mw-content-text"]/div[1]/p[2]'
+        )
+        if not fist_paragraph.text:
+            fist_paragraph = self.web_driver.find_element(
+                By.XPATH, '//*[@id="mw-content-text"]/div[1]/p[3]'
+            )
+
+        self.temp_scientist_dict["first_paragraph"] = fist_paragraph.text
+
+    def find_age_data(self):
         biography_element = self.web_driver.find_element(
             By.CLASS_NAME, "infobox.biography.vcard"
         )
         bio_text = biography_element.text
-        born_pattern = "Born\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
-        died_pattern = "Died\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
+        born_pattern = "Born\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
+        died_pattern = "Died\s*.*?\s*(\d{1,2}\s*[A-Za-z]+\s*\d{4})"
 
         born_match = re.search(born_pattern, bio_text)
         if born_match:
-            print("Born date string format is ... ", born_match.group(1))
             born_date_string = born_match.group(1)
             born_date = self.date_string_to_object(born_date_string)
-            print("Match found!", born_date)
-        else:
-            print("No match found.")
 
         died_match = re.search(died_pattern, bio_text)
         if died_match:
             died_date_string = died_match.group(1)
             died_date = self.date_string_to_object(died_date_string)
-            print("Match found!", died_date)
-        else:
-            print("No match found.")
 
-        print("Age is >>>>>>>>>>>>>>  ", self.calculate_age(born_date, died_date))
-
-        self.extract_data_dict["born_date"] = born_date_string
-        self.extract_data_dict["died_date"] = died_date_string
+        self.temp_scientist_dict["born_date"] = born_date_string
+        self.temp_scientist_dict["died_date"] = died_date_string
+        self.temp_scientist_dict["age"] = (
+            self.calculate_age(born_date, died_date)
+            if born_match and died_match
+            else "Not Available"
+        )
 
     def date_string_to_object(self, date_string):
         date_format = "%d %B %Y"
@@ -101,5 +125,4 @@ class Robot:
             death_date.month == birth_date.month and death_date.day < birth_date.day
         ):
             age -= 1
-
         return age
